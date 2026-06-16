@@ -7,6 +7,16 @@ cloud sandbox, builds files, and hands them back to you.
 You just talk to it normally. NEXUS reads the task, judges its complexity, and
 decides which tools and skills to use.
 
+<p align="center">
+  <img src="assets/agent.png" alt="NEXUS — the autonomous agent analyzing data and writing Python in a sandbox" width="880" />
+</p>
+
+<p align="center">
+  <img src="assets/welcome.png" alt="NEXUS welcome screen — multi-model AI workspace" width="430" />
+  &nbsp;
+  <img src="assets/settings.png" alt="NEXUS settings — local-first, bring your own model keys" width="430" />
+</p>
+
 ---
 
 ## ✨ Features
