@@ -1,0 +1,345 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* --- NEXUS AI - Core Styles --- */
+
+:root {
+  --cursor-blink: 530ms;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track, transparent);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Midnight theme */
+.theme-midnight {
+  --bg: #0a0e1a;
+  --primary: #3b82f6;
+  --secondary: #1d4ed8;
+  --accent: #1e3a5f;
+  --text: #93c5fd;
+  --dim: #0f172a;
+  --scrollbar-thumb: #1e293b;
+  --scrollbar-thumb-hover: #334155;
+  --scrollbar-track: #0a0e1a;
+}
+
+/* Crimson theme */
+.theme-crimson {
+  --bg: #0f0a0a;
+  --primary: #ef4444;
+  --secondary: #dc2626;
+  --accent: #7f1d1d;
+  --text: #fca5a5;
+  --dim: #1c1111;
+  --scrollbar-thumb: #292524;
+  --scrollbar-thumb-hover: #44403c;
+  --scrollbar-track: #0f0a0a;
+}
+
+/* Aurora theme */
+.theme-aurora {
+  --bg: #0f172a;
+  --primary: #8b5cf6;
+  --secondary: #6d28d9;
+  --accent: #4c1d95;
+  --text: #c4b5fd;
+  --dim: #1e1b4b;
+  --scrollbar-thumb: #312e81;
+  --scrollbar-thumb-hover: #4338ca;
+  --scrollbar-track: #0f172a;
+}
+
+/* Light theme */
+.theme-light {
+  --bg: #f8fafc;
+  --primary: #2563eb;
+  --secondary: #64748b;
+  --accent: #e2e8f0;
+  --text: #1e293b;
+  --dim: #f1f5f9;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
+  --scrollbar-track: #f8fafc;
+}
+
+/* Theme-aware classes */
+.theme-bg { background-color: var(--bg); }
+.theme-primary { color: var(--primary); }
+.theme-secondary { color: var(--secondary); }
+.theme-text { color: var(--text); }
+.bg-theme-dim { background-color: var(--dim); }
+.bg-theme-accent { background-color: var(--accent); }
+.border-theme-primary { border-color: var(--primary); }
+.border-theme-dim { border-color: var(--dim); }
+
+/* Chat input — guarantee the typed text is high-contrast on every theme,
+   instead of inheriting a washed-out colour. */
+.nexus-input {
+  color: #eaf2ff;
+  caret-color: var(--primary);
+}
+.nexus-input::placeholder {
+  color: var(--secondary);
+  opacity: 0.6;
+}
+.theme-light .nexus-input {
+  color: #0f172a;
+}
+
+/* Brand wordmark gradient — a distinct identity, not a flat primary colour. */
+.brand-gradient {
+  background: linear-gradient(120deg, var(--primary) 0%, var(--text) 70%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Soft inner panel used for the composer + cards, for a more layered look. */
+.nexus-panel {
+  background: color-mix(in srgb, var(--dim) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
+}
+
+/* Glow effects */
+.glow-primary {
+  text-shadow: 0 0 10px var(--primary), 0 0 20px var(--primary);
+}
+
+.glow-box {
+  box-shadow: 0 0 10px var(--primary), inset 0 0 5px var(--primary);
+}
+
+/* Cursor */
+.terminal-cursor::after {
+  content: '|';
+  animation: blink var(--cursor-blink) step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Subtle grid background */
+.grid-bg {
+  background:
+    linear-gradient(180deg, transparent 0%, var(--bg) 100%),
+    linear-gradient(rgba(59, 130, 246, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 24px 24px, 24px 24px;
+}
+
+/* Typing animation */
+.typing-effect {
+  overflow: hidden;
+  border-right: 2px solid var(--primary);
+  white-space: nowrap;
+  animation:
+    typing 2s steps(30, end),
+    blink var(--cursor-blink) step-end infinite;
+}
+
+@keyframes typing {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+/* Code block styling */
+.prose pre {
+  background: var(--dim) !important;
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+}
+
+.prose code {
+  color: var(--primary) !important;
+  background: var(--dim);
+  padding: 0.125rem 0.25rem;
+  border-radius: 3px;
+}
+
+/* Message animations */
+.message-enter {
+  animation: message-slide-in 0.3s ease-out;
+}
+
+@keyframes message-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dynamic upgrade morph animation */
+.dynamic-morph {
+  animation: dynamic-dissolve 0.6s ease-out;
+}
+
+@keyframes dynamic-dissolve {
+  0% {
+    opacity: 0.3;
+    filter: blur(6px) saturate(2);
+    transform: scaleY(0.97);
+  }
+  30% {
+    opacity: 0.6;
+    filter: blur(3px) saturate(1.5);
+    transform: scaleY(0.99);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0px) saturate(1);
+    transform: scaleY(1);
+  }
+}
+
+/* Race navigator */
+.race-navigator .arrow-hint {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.race-navigator:focus .arrow-hint {
+  opacity: 0.4;
+}
+
+.race-navigator button:not(:disabled):hover {
+  text-shadow: 0 0 6px var(--primary);
+}
+
+/* Action button */
+.action-btn {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.action-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  opacity: 0.2;
+  transition: left 0.5s ease;
+}
+
+.action-btn:hover::before {
+  left: 100%;
+}
+
+/* Selection styling */
+::selection {
+  background: var(--primary);
+  color: var(--bg);
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+}
+
+/* Loading dots */
+.loading-dots::after {
+  content: '';
+  animation: loading-dots 1.5s infinite;
+}
+
+@keyframes loading-dots {
+  0%, 20% { content: '.'; }
+  40% { content: '..'; }
+  60%, 100% { content: '...'; }
+}
+
+/* Shimmer loading effect */
+.shimmer {
+  background: linear-gradient(90deg, var(--dim) 25%, var(--accent) 50%, var(--dim) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* --- Thinking panel (Claude-web style) --- */
+/* Animated gradient sweep across the "Thinking" label while the model reasons. */
+.thinking-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--secondary) 0%,
+    var(--text) 25%,
+    var(--primary) 50%,
+    var(--text) 75%,
+    var(--secondary) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: thinking-sweep 2.4s linear infinite;
+}
+
+@keyframes thinking-sweep {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* The reasoning body reveals smoothly when expanded. */
+.thinking-body {
+  animation: thinking-reveal 0.25s ease-out;
+}
+
+@keyframes thinking-reveal {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thinking-shimmer { animation: none; }
+  .thinking-body { animation: none; }
+}
