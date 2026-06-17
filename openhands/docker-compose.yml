@@ -1,0 +1,31 @@
+# NEXUS Agent engine — powered by OpenHands (MIT), rebranded.
+# Runs the autonomous agent locally. The container is named "nexus-agent" so it
+# shows up as NEXUS in `docker ps`. Web UI is exposed on 3030 (NEXUS dev uses 3000).
+#
+# Usage (inside a WSL terminal on Windows, with Docker Desktop + WSL2 enabled):
+#   docker compose -f openhands/docker-compose.yml up
+# Then open http://localhost:3030
+#
+# To update versions, bump the image tags below (see openhands/README.md).
+
+services:
+  nexus-agent:
+    image: docker.openhands.dev/openhands/openhands:1.8
+    container_name: nexus-agent
+    pull_policy: always
+    stdin_open: true
+    tty: true
+    environment:
+      - AGENT_SERVER_IMAGE_REPOSITORY=ghcr.io/openhands/agent-server
+      - AGENT_SERVER_IMAGE_TAG=1.26.0-python
+      - LOG_ALL_EVENTS=true
+    volumes:
+      # The engine needs the host Docker socket to spawn isolated sandbox containers.
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Persisted state (conversations, settings, workspace). Kept out of git.
+      - ./state:/.openhands
+    ports:
+      - "3030:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
