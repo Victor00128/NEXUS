@@ -1,0 +1,19 @@
+# Vercel trata cualquier carpeta api/ de la raiz como Serverless Functions, una
+# por archivo. Pero api/ no es eso: es el servidor Express autohospedado que se
+# arranca con `npm run api` y se despliega por Docker. Sus 24 archivos hacian
+# que el deploy pasara del limite de 12 funciones del plan Hobby.
+#
+# El frontend no lo necesita: llama a /api/agent, que es la route handler de
+# Next en src/app/api/agent/. La "race API" de localhost:7860 es opcional y se
+# configura desde los ajustes de la propia app.
+api/
+functions/
+
+# Especificos de otros hostings
+_redirects
+_headers
+nginx.conf
+Dockerfile
+Dockerfile.web
+docker-compose.yml
+openhands/
