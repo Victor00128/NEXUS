@@ -5,12 +5,14 @@
  * Keys are loaded from the NEXUS_API_KEYS environment variable
  * (comma-separated list) or a single NEXUS_API_KEY.
  *
- * If neither is set, auth is disabled (open access for local dev).
+ * If neither is set, auth is disabled so local development needs no setup.
+ * In production that would leave every route open, so the server refuses to
+ * start instead â€” misconfiguration should be loud, not silently permissive.
  *
  * After authentication, the request is annotated with:
- *   - req.apiKeyId  — hashed key for rate-limit bucketing
- *   - req.tier      — resolved tier (free/pro/enterprise)
- *   - req.accessConfig — full tier configuration object
+ *   - req.apiKeyId     hashed key for rate-limit bucketing
+ *   - req.tier         resolved tier (free/pro/enterprise)
+ *   - req.accessConfig full tier configuration object
  */
 
 import type { Request, Response, NextFunction } from 'express'
@@ -44,16 +46,32 @@ function hashKey(key: string): string {
   return createHash('sha256').update(key).digest('hex').slice(0, 16)
 }
 
-// H-1: Warn at startup if auth is disabled
+const IS_PRODUCTION = process.env.NODE_ENV === 'production'
+
+// H-1: Fail fast in production, warn in development.
 if (!getValidKeys()) {
+  if (IS_PRODUCTION) {
+    throw new Error(
+      '[NEXUS] Refusing to start: NEXUS_API_KEY or NEXUS_API_KEYS must be set ' +
+      'when NODE_ENV=production. Running without keys would expose every ' +
+      '/v1 route â€” including the paid tiers â€” to anonymous callers.',
+    )
+  }
   console.warn(
     '[NEXUS] WARNING: No API keys configured (NEXUS_API_KEYS / NEXUS_API_KEY). ' +
-    'Auth is disabled — all requests will be allowed.',
+    'Auth is disabled â€” all requests will be allowed. Development only.',
   )
 }
 
 export function apiKeyAuth(req: Request, res: Response, next: NextFunction): void {
   const validKeys = getValidKeys()
+
+  // Belt and braces: the startup check above already refuses to boot without
+  // keys in production, but never let the open path be reachable there.
+  if (!validKeys && IS_PRODUCTION) {
+    res.status(503).json({ error: 'Server misconfigured: authentication is not available.' })
+    return
+  }
 
   // If no keys configured, allow all requests (local dev mode)
   if (!validKeys) {

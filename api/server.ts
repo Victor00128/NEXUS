@@ -120,7 +120,7 @@ app.get('/v1/info', (_req, res) => {
       'GET /v1/research/combined-stats': 'Combined in-memory + published stats (Pro+)',
     },
     authentication: {
-      openrouter_key: process.env.openrouter_api_key
+      openrouter_key: process.env.OPENROUTER_API_KEY
         ? 'Server-provided (callers do NOT need their own OpenRouter key)'
         : 'Caller must provide openrouter_api_key in request body',
       api_key: 'Send Authorization: Bearer <your-api-key> (if server has NEXUS_API_KEY set)',
@@ -278,11 +278,11 @@ TIER CHECK:
 AUTO-PUBLISH: ${hfStatus}
 `)
 
-  if (!process.env.nexus_API_KEY && !process.env.nexus_API_KEYS) {
+  if (!process.env.NEXUS_API_KEY && !process.env.NEXUS_API_KEYS) {
     console.warn('  WARNING: No NEXUS_API_KEY or NEXUS_API_KEYS set - all routes are unauthenticated!')
   }
 
-  if (!process.env.nexus_TIER_KEYS) {
+  if (!process.env.NEXUS_TIER_KEYS) {
     console.warn('  WARNING: No NEXUS_TIER_KEYS set - all keys default to free tier')
   }
 
