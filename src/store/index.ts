@@ -119,6 +119,10 @@ export interface AppState {
   transcriptionApiKey: string
   transcriptionBaseUrl: string
   transcriptionModel: string
+  // E2B sandbox key for the autonomous agent. Bring-your-own, like the LLM
+  // keys above: when set, agent runs bill the user's E2B account instead of
+  // whatever key the deployment happens to carry.
+  e2bApiKey: string
   // NEXUS Agent engine (OpenHands) URL — local by default
   agentUrl: string
   defaultModel: string
@@ -210,6 +214,7 @@ export interface AppState {
   setTranscriptionApiKey: (key: string) => void
   setTranscriptionBaseUrl: (url: string) => void
   setTranscriptionModel: (model: string) => void
+  setE2bApiKey: (key: string) => void
   setAgentUrl: (url: string) => void
   setDefaultModel: (model: string) => void
   setShowSettings: (show: boolean) => void
@@ -391,6 +396,7 @@ export const useStore = create<AppState>()(
       transcriptionApiKey: '',
       transcriptionBaseUrl: 'https://api.groq.com/openai/v1',
       transcriptionModel: 'whisper-large-v3',
+      e2bApiKey: '',
       agentUrl: 'http://localhost:3030',
       defaultModel: 'anthropic/claude-opus-4.6',
       conversations: [],
@@ -471,6 +477,7 @@ export const useStore = create<AppState>()(
       setTranscriptionApiKey: (transcriptionApiKey) => set({ transcriptionApiKey }),
       setTranscriptionBaseUrl: (transcriptionBaseUrl) => set({ transcriptionBaseUrl }),
       setTranscriptionModel: (transcriptionModel) => set({ transcriptionModel }),
+      setE2bApiKey: (e2bApiKey) => set({ e2bApiKey }),
       setAgentUrl: (agentUrl) => set({ agentUrl }),
       setDefaultModel: (defaultModel) => set((state) => ({
         defaultModel,
@@ -781,7 +788,7 @@ export const useStore = create<AppState>()(
           'conversations', 'currentConversationId', 'theme', 'defaultModel',
           'currentPersona', 'apiKey', 'nvidiaApiKey',
           'transcriptionApiKey', 'transcriptionBaseUrl', 'transcriptionModel',
-          'agentUrl',
+          'e2bApiKey', 'agentUrl',
           'tuningEnabled', 'tuningStrategy',
           'tuningOverrides', 'learningState', 'obfuscationConfig',
           'memories', 'memoriesEnabled', 'customSystemPrompt', 'useCustomSystemPrompt',
@@ -810,6 +817,7 @@ export const useStore = create<AppState>()(
         transcriptionApiKey: state.transcriptionApiKey,
         transcriptionBaseUrl: state.transcriptionBaseUrl,
         transcriptionModel: state.transcriptionModel,
+        e2bApiKey: state.e2bApiKey,
         agentUrl: state.agentUrl,
         defaultModel: state.defaultModel,
         conversations: state.conversations,

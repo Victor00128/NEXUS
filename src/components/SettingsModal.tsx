@@ -242,6 +242,7 @@ function APIKeyTab() {
     transcriptionApiKey, setTranscriptionApiKey,
     transcriptionModel, setTranscriptionModel,
     setTranscriptionBaseUrl,
+    e2bApiKey, setE2bApiKey,
   } = useStore()
   const t = useT()
   const [showKey, setShowKey] = useState(false)
@@ -251,6 +252,10 @@ function APIKeyTab() {
   const [showWhisper, setShowWhisper] = useState(false)
   const [localWhisper, setLocalWhisper] = useState(transcriptionApiKey)
   const [whisperSaved, setWhisperSaved] = useState(false)
+
+  const [showE2b, setShowE2b] = useState(false)
+  const [localE2b, setLocalE2b] = useState(e2bApiKey)
+  const [e2bSaved, setE2bSaved] = useState(false)
 
   const handleBlur = () => {
     if (localKey !== apiKey) {
@@ -265,6 +270,14 @@ function APIKeyTab() {
       setTranscriptionApiKey(localWhisper)
       setWhisperSaved(true)
       setTimeout(() => setWhisperSaved(false), 2000)
+    }
+  }
+
+  const handleE2bBlur = () => {
+    if (localE2b !== e2bApiKey) {
+      setE2bApiKey(localE2b)
+      setE2bSaved(true)
+      setTimeout(() => setE2bSaved(false), 2000)
     }
   }
 
@@ -384,6 +397,52 @@ function APIKeyTab() {
         <p className="text-xs theme-secondary mt-2">
           Max 25 MB per media file. Common video formats are transcribed via their audio track.
         </p>
+      </div>
+
+      {/* ── E2B sandbox key for the autonomous agent ── */}
+      <div className="pt-4 mt-4 border-t border-theme-primary/20">
+        <h3 className="text-lg font-semibold mb-2">Agent Sandbox (E2B)</h3>
+        <p className="text-sm theme-secondary mb-4">
+          Required for Agent mode. The agent runs code in a throwaway cloud
+          sandbox, and every run is billed to whoever owns the key — so bring
+          your own. Free tier available at{' '}
+          <a
+            href="https://e2b.dev/dashboard"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="theme-primary underline"
+          >
+            e2b.dev
+          </a>
+          . Stored locally, never sent to NEXUS servers.
+        </p>
+
+        <div className="relative">
+          <input
+            type={showE2b ? 'text' : 'password'}
+            value={localE2b}
+            onChange={(e) => setLocalE2b(e.target.value)}
+            onBlur={handleE2bBlur}
+            placeholder="e2b_..."
+            className="w-full px-4 py-3 pr-20 bg-theme-dim border border-theme-primary rounded-lg
+              focus:outline-none focus:glow-box"
+          />
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+            {e2bSaved && (
+              <span className="flex items-center gap-1 text-xs text-green-500">
+                <Check className="w-3 h-3" />
+                Saved
+              </span>
+            )}
+            <button
+              onClick={() => setShowE2b(!showE2b)}
+              className="p-1 hover:theme-primary transition-colors"
+              aria-label={showE2b ? 'Hide key' : 'Show key'}
+            >
+              {showE2b ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )

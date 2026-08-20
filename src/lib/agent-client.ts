@@ -18,6 +18,8 @@ export interface StreamAgentOptions {
   temperature?: number
   /** Enabled skill ids the model may auto-select from. */
   skills?: string[]
+  /** User's own E2B key; sandboxes are billed to whoever owns it. */
+  e2bApiKey?: string
   signal?: AbortSignal
 }
 
@@ -39,6 +41,7 @@ export async function streamAgent(
       model: opts.model,
       temperature: opts.temperature,
       skills: opts.skills,
+      e2bApiKey: opts.e2bApiKey,
     }),
     signal: opts.signal,
   })

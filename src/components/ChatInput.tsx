@@ -35,6 +35,7 @@ export function ChatInput() {
     transcriptionApiKey,
     transcriptionBaseUrl,
     transcriptionModel,
+    e2bApiKey,
     isStreaming,
     setIsStreaming,
     personas,
@@ -618,6 +619,7 @@ export function ChatInput() {
               skills: skillsEnabled
                 ? SKILLS.filter((s) => skillConfig[s.id] !== false).map((s) => s.id)
                 : [],
+              e2bApiKey,
               signal: abortControllerRef.current.signal,
             },
             (e: AgentEvent) => {

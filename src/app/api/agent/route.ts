@@ -1,8 +1,11 @@
 /**
  * POST /api/agent  — runs the NEXUS autonomous agent and streams steps via SSE.
  *
- * Requires server mode (not static export). The E2B key is read from the server
- * environment (E2B_API_KEY); the OpenRouter key is passed by the client.
+ * Requires server mode (not static export). Both credentials are bring-your-own:
+ * the caller supplies the LLM key and, for the sandbox, their own E2B key.
+ * E2B_API_KEY on the server is only a fallback for local development — every
+ * sandbox is billed to whoever owns the key, so a public deployment must not
+ * hand out its own.
  */
 
 import { runAgent, type AgentEvent } from '@/lib/agent'
@@ -43,6 +46,16 @@ function isAllowedBaseUrl(raw: unknown): boolean {
   return ALLOWED_LLM_HOSTS.has(url.hostname)
 }
 
+/** Roles the agent loop understands; anything else is a malformed request. */
+const VALID_ROLES = new Set(['system', 'user', 'assistant'])
+
+function isValidMessageList(value: unknown): boolean {
+  if (!Array.isArray(value) || value.length === 0) return false
+  return value.every(
+    m => m && typeof m === 'object' && VALID_ROLES.has((m as any).role) && 'content' in m,
+  )
+}
+
 export async function POST(req: Request) {
   let body: any
   try {
@@ -52,19 +65,37 @@ export async function POST(req: Request) {
   }
 
   const { messages, llmApiKey, llmBaseUrl, model, temperature, skills } = body || {}
-  const e2bApiKey = process.env.E2B_API_KEY
 
-  if (!Array.isArray(messages) || messages.length === 0) {
-    return Response.json({ error: 'messages (non-empty array) is required' }, { status: 400 })
+  // The caller's own sandbox key wins. The server key stays as a local-dev
+  // convenience and is refused in production, where it would mean strangers
+  // running sandboxes on the deployment owner's account.
+  const callerE2bKey = typeof body?.e2bApiKey === 'string' ? body.e2bApiKey.trim() : ''
+  const serverE2bKey = process.env.NODE_ENV === 'production' ? '' : process.env.E2B_API_KEY
+  const e2bApiKey = callerE2bKey || serverE2bKey
+
+  if (!isValidMessageList(messages)) {
+    return Response.json(
+      { error: 'messages must be a non-empty array of {role, content} with role system|user|assistant' },
+      { status: 400 },
+    )
   }
   if (!e2bApiKey) {
     return Response.json(
-      { error: 'Agent not configured: E2B_API_KEY is missing on the server (.env.local).' },
-      { status: 500 },
+      { error: 'No E2B API key. Add yours in Settings → Agent; get one at https://e2b.dev/dashboard.' },
+      { status: 400 },
     )
   }
   if (!llmApiKey || !llmBaseUrl) {
     return Response.json({ error: 'llmApiKey and llmBaseUrl are required' }, { status: 400 })
+  }
+  if (temperature !== undefined && (typeof temperature !== 'number' || temperature < 0 || temperature > 2)) {
+    return Response.json({ error: 'temperature must be a number between 0 and 2' }, { status: 400 })
+  }
+  if (model !== undefined && typeof model !== 'string') {
+    return Response.json({ error: 'model must be a string' }, { status: 400 })
+  }
+  if (skills !== undefined && (!Array.isArray(skills) || skills.some(s => typeof s !== 'string'))) {
+    return Response.json({ error: 'skills must be an array of strings' }, { status: 400 })
   }
   if (!isAllowedBaseUrl(llmBaseUrl)) {
     return Response.json(
