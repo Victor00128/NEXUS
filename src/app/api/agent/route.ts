@@ -11,6 +11,38 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // allow long agent runs where the host permits
 
+/**
+ * llmBaseUrl arrives in the request body and is used to build a server-side
+ * fetch. Without an allowlist, anyone can point a public deployment at an
+ * internal address — cloud metadata endpoints, localhost, a private network —
+ * and use the server as a proxy. Only the providers this app actually talks to
+ * are accepted.
+ */
+const ALLOWED_LLM_HOSTS = new Set([
+  'openrouter.ai',
+  'integrate.api.nvidia.com',
+  'api.openai.com',
+])
+
+function isAllowedBaseUrl(raw: unknown): boolean {
+  if (typeof raw !== 'string') return false
+
+  let url: URL
+  try {
+    url = new URL(raw)
+  } catch {
+    return false
+  }
+
+  // A self-hosted provider on localhost is useful while developing, but must
+  // never be reachable from a deployed instance.
+  const isLocal = url.hostname === 'localhost' || url.hostname === '127.0.0.1'
+  if (isLocal) return process.env.NODE_ENV !== 'production'
+
+  if (url.protocol !== 'https:') return false
+  return ALLOWED_LLM_HOSTS.has(url.hostname)
+}
+
 export async function POST(req: Request) {
   let body: any
   try {
@@ -33,6 +65,16 @@ export async function POST(req: Request) {
   }
   if (!llmApiKey || !llmBaseUrl) {
     return Response.json({ error: 'llmApiKey and llmBaseUrl are required' }, { status: 400 })
+  }
+  if (!isAllowedBaseUrl(llmBaseUrl)) {
+    return Response.json(
+      {
+        error:
+          'llmBaseUrl is not an allowed provider. Supported: ' +
+          [...ALLOWED_LLM_HOSTS].join(', '),
+      },
+      { status: 400 },
+    )
   }
 
   const encoder = new TextEncoder()

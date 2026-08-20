@@ -130,7 +130,7 @@ app.get('/v1/info', (_req, res) => {
       note: 'Opt-in per request via contribute_to_data: true. No PII stored. Exportable as JSONL for HuggingFace Datasets.',
     },
     auto_publish: getPublisherStatus(),
-    source: 'https://github.com/nexuslabs/nexus-ai',
+    source: 'https://github.com/Victor00128/NEXUS',
   })
 })
 
