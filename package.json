@@ -9,6 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit",
     "api": "tsx api/server.ts",
     "api:dev": "tsx watch api/server.ts"
   },

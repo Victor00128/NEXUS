@@ -44,8 +44,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        mono: ['Fira Code', 'Cascadia Code', 'Consolas', 'monospace'],
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-fira-code)', 'Cascadia Code', 'Consolas', 'monospace'],
+        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
       },
       animation: {
         'fade-in': 'fade-in 0.3s ease-out',

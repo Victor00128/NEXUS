@@ -1,0 +1,15 @@
+{
+  "extends": "next/core-web-vitals",
+  "ignorePatterns": [
+    "node_modules/",
+    ".next/",
+    "out/",
+    "npm-dist/",
+    "functions/",
+    "HF/",
+    "openhands/",
+    "research/",
+    "paper/",
+    "_nv_probe*.mjs"
+  ]
+}

@@ -143,9 +143,11 @@ export const allModules: TransformModule[] = [
 export function applySTMs(text: string, modules: TransformModule[]): string {
   let result = text
 
-  for (const module of modules) {
-    if (module.enabled) {
-      result = module.transformer(result, module.config)
+  // Not named `module`: that identifier is reserved in CommonJS scope and
+  // shadowing it breaks Next's bundler (@next/next/no-assign-module-variable).
+  for (const stm of modules) {
+    if (stm.enabled) {
+      result = stm.transformer(result, stm.config)
     }
   }
 
