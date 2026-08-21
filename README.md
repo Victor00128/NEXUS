@@ -1,4 +1,128 @@
 # NEXUS
 
 [![CI](https://github.com/Victor00128/NEXUS/actions/workflows/ci.yml/badge.svg)](https://github.com/Victor00128/NEXUS/actions/workflows/ci.yml)
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-0F172A.svg)](LICENSE)  **A multi-model AI workspace with an autonomous agent.** Chat with any frontier model, drop in files, and let NEXUS *do the work* — it plans, runs code in a real cloud sandbox, builds files, and hands them back to you.  You just talk to it normally. NEXUS reads the task, judges its complexity, and decides which tools and skills to use.  <p align="center">   <img src="assets/agent.png" alt="NEXUS — the autonomous agent analyzing data and writing Python in a sandbox" width="880" /> </p>  <p align="center">   <img src="assets/welcome.png" alt="NEXUS welcome screen — multi-model AI workspace" width="430" />   &nbsp;   <img src="assets/settings.png" alt="NEXUS settings — local-first, bring your own model keys" width="430" /> </p>  ---  ## ✨ Features  - **🤖 Autonomous agent** — an isolated Linux sandbox (Python, bash, internet, a   filesystem). NEXUS runs and tests code, scrapes/fetches data, processes and   builds files, and returns them as **downloadable artifacts** — nothing gets   stuck in the sandbox. - **🧠 Skills (auto-selected)** — expert playbooks the model picks per task:   **Web Design** (premium front-ends), **Planning**, **Data Analysis**,   **Debugging**, and **Autonomous Agent**. No commands to learn — it just routes. - **💭 Thinking UI** — a Claude-style collapsible reasoning panel ("Thinking →   Thought for *N*s") plus a live timeline of the agent's tool use. - **📎 File analysis** — images (vision), PDF, Word, Excel, CSV, audio/video   (Whisper transcription), and archives (ZIP/RAR/7z/tar…), extracted in-browser. - **⚔️ Multi-model orchestration** — **RACE** several models in parallel and keep   the best answer; **SYNTHESIS** collects all responses and synthesizes a single   ground-truth answer. - **🎛️ Context-aware tuning** — auto-detects intent (code / creative / analytical /   chat) and applies optimal sampling parameters; learns from your 👍/👎. - **🔌 Bring your own model** — OpenRouter (100+ models) and NVIDIA NIM, side by side. - **🔒 Privacy-first** — everything lives in your browser's local storage. No   account, no tracking. Export/import full backups anytime. - **🎨 Four themes** — Midnight, Crimson, Aurora, Light.  ---  ## 🚀 Quick start  ```bash npm install cp .env.local.example .env.local   # then add your keys (see below) npm run dev ```  Open <http://localhost:3000>, open **Settings**, and paste your model API key.  > The autonomous agent needs **server mode** (the default `npm run dev` / `npm run > start`). A static export (`NEXT_STATIC_EXPORT=1 npm run build`) builds the chat > UI but cannot run the agent route.  ---  ## 🔑 Keys & environment  Model keys are entered in **Settings** (stored locally, never sent to a NEXUS server):  - **OpenRouter** — 100+ models · <https://openrouter.ai/keys> - **NVIDIA NIM** — <https://build.nvidia.com> - **Whisper** (optional, for audio/video) — Groq or OpenAI, set in Settings.  The agent's sandbox key is read **server-side** from `.env.local`:  ```bash # .env.local E2B_API_KEY=e2b_xxxxxxxx   # https://e2b.dev  (use the "API Key", not an access token) ```  ---  ## 🏗️ Architecture  ``` src/   app/            Next.js app + the /api/agent route (SSE, server-only)   components/     React UI (chat, message, settings, …)   lib/     agent.ts      autonomous ReAct loop over the E2B sandbox + artifact capture     skills.ts     skill playbooks + auto-router     system-prompt.ts   NEXUS's identity     files.ts      client-side file extraction     openrouter.ts / nvidia.ts   providers     tuning*.ts    context-adaptive sampling   store/          Zustand state (persisted to localStorage) ```  The agent loop is NEXUS's own code; [E2B](https://e2b.dev) provides only the sandbox.  ---  ## 📜 License & credits  NEXUS is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)** — see [LICENSE](LICENSE).  NEXUS's interface and several features are **based on [G0DM0D3](https://github.com/elder-plinius/G0DM0D3) by elder-plinius** (AGPL-3.0). Because NEXUS is a derivative work, it stays under AGPL-3.0: if you distribute it or run it as a network service for others, you must make your source available to those users under the same license. Full third-party attribution is in [NOTICE.md](NOTICE.md).
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-0F172A.svg)](LICENSE)
+
+**A multi-model AI workspace with an autonomous agent.** NEXUS combines chat,
+file analysis, model routing, and sandboxed code execution in one interface.
+
+[Try the live demo](https://nexus-exec.vercel.app/) ·
+[Read the API guide](API.md) ·
+[Report a security issue](SECURITY.md)
+
+> The public demo is suitable for evaluating the interface. Model and sandbox
+> features require your own provider keys, and availability depends on those
+> external services.
+
+<p align="center">
+  <img src="assets/agent.png" alt="NEXUS autonomous agent analyzing data and running Python in a sandbox" width="880" />
+</p>
+
+<p align="center">
+  <img src="assets/welcome.png" alt="NEXUS multi-model workspace welcome screen" width="430" />
+  &nbsp;
+  <img src="assets/settings.png" alt="NEXUS local-first provider settings" width="430" />
+</p>
+
+## What it demonstrates
+
+- **Autonomous agent workflow** — plans tasks, runs Python or shell commands in
+  an isolated E2B sandbox, and returns generated files as downloadable artifacts.
+- **Skill routing** — selects focused playbooks for web design, planning, data
+  analysis, debugging, and autonomous execution.
+- **Visible execution** — shows a collapsible reasoning summary and a live tool
+  timeline so users can follow progress.
+- **File analysis** — handles images, PDF, Word, Excel, CSV, audio/video, and
+  common archive formats.
+- **Multi-model orchestration** — can race supported models or synthesize their
+  responses into one result.
+- **Bring your own provider** — supports OpenRouter and NVIDIA NIM model keys.
+- **Local-first settings** — chat data and provider configuration are stored in
+  the browser, with backup export/import.
+
+## Quick start
+
+### Requirements
+
+- Node.js 20 or newer
+- An OpenRouter or NVIDIA NIM key for model-backed features
+- An E2B API key for autonomous sandbox execution
+
+```bash
+git clone https://github.com/Victor00128/NEXUS.git
+cd NEXUS
+npm ci
+cp .env.local.example .env.local
+npm run dev
+```
+
+Open <http://localhost:3000>, then add your model provider key in **Settings**.
+Add the E2B key to `.env.local` only when you want to exercise the agent:
+
+```env
+E2B_API_KEY=e2b_your_key_here
+```
+
+Never commit `.env.local` or a real provider key. The file is ignored by Git;
+`.env.local.example` documents the expected variables without credentials.
+
+## Runtime modes and limitations
+
+- The autonomous agent needs server mode (`npm run dev` or `npm run start`) so
+  the server-only agent route can reach the sandbox provider.
+- A static export (`NEXT_STATIC_EXPORT=1 npm run build`) exposes the chat UI but
+  cannot run the agent route.
+- Browser-stored provider keys are appropriate for personal demos. A multi-user
+  production deployment should move provider access, quotas, authentication,
+  and audit controls behind a server.
+- Generated output and model responses must be reviewed before they are trusted
+  or used in a production workflow.
+- The repository currently validates lint, types, and production build in CI;
+  automated agent-behavior tests are not yet included.
+
+## Quality checks
+
+```bash
+npm run lint
+npm run typecheck
+npm run build
+```
+
+## Architecture
+
+```text
+src/
+  app/                Next.js app and server-only /api/agent route
+  components/         Chat, messages, settings, and execution UI
+  lib/
+    agent.ts           Agent loop, sandbox tools, and artifact capture
+    skills.ts          Skill playbooks and routing
+    system-prompt.ts   NEXUS agent identity and constraints
+    files.ts           Client-side file extraction
+    openrouter.ts      OpenRouter provider integration
+    nvidia.ts          NVIDIA NIM provider integration
+    tuning*.ts         Context-aware model parameters
+  store/               Zustand state persisted in localStorage
+```
+
+E2B provides the isolated execution environment; the orchestration and agent
+loop in this repository are application code.
+
+## Documentation
+
+- [API guide](API.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
+- [Third-party notices](NOTICE.md)
+
+## License and attribution
+
+NEXUS is licensed under the **GNU Affero General Public License v3.0
+(AGPL-3.0)**. See [LICENSE](LICENSE).
+
+The interface and several features are based on
+[G0DM0D3](https://github.com/elder-plinius/G0DM0D3) by elder-plinius, also
+licensed under AGPL-3.0. Because NEXUS is a derivative work, it remains under
+AGPL-3.0. If you distribute it or run a modified version as a network service,
+review the license obligations and provide the corresponding source as required.
+Full attribution is available in [NOTICE.md](NOTICE.md).
