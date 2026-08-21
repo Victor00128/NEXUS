@@ -88,16 +88,26 @@ Never commit `.env.local` or a real provider key. The file is ignored by Git;
   and audit controls behind a server.
 - Generated output and model responses must be reviewed before they are trusted
   or used in a production workflow.
-- The repository currently validates lint, types, and production build in CI;
-  automated agent-behavior tests are not yet included.
+- CI validates lint, types, the security regression tests, and the production
+  build. Those tests cover the consent and telemetry boundaries; end-to-end
+  agent-behavior tests are not yet included.
 
 ## Quality checks
 
+Every push and pull request runs all four steps
+([workflow](.github/workflows/ci.yml)):
+
 ```bash
-npm run lint
-npm run typecheck
-npm run build
+npm run lint       # next lint
+npm run typecheck  # tsc --noEmit
+npm test           # security regressions: consent + telemetry validation
+npm run build      # Next.js production build
 ```
+
+`tests/security-regressions.test.ts` pins the behaviour that must not regress:
+dataset publication requires a literal `true`, telemetry events are schema
+validated, origins are checked against an allowlist, and rate-limit keys never
+collapse distinct clients.
 
 ## Architecture
 
