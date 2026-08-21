@@ -40,6 +40,7 @@ import {
   type SynthesisResponse,
 } from '../lib/synthesis'
 import { addEntry } from '../lib/dataset'
+import { isExplicitDataContribution } from '../lib/consent'
 import { recordEvent, categorizeError } from '../lib/metadata'
 
 export const chatRoutes = Router()
@@ -346,7 +347,7 @@ chatRoutes.post('/completions', async (req, res) => {
 
       // Dataset
       let datasetId: string | null = null
-      if (contribute_to_data) {
+      if (isExplicitDataContribution(contribute_to_data)) {
         datasetId = addEntry({
           endpoint: '/v1/chat/completions',
           model: winner.model, mode: 'race',
@@ -429,7 +430,7 @@ chatRoutes.post('/completions', async (req, res) => {
             obfuscation: pipeline.obfuscationResult,
             stm: stmResult,
           },
-          dataset: contribute_to_data ? { contributed: true, entry_id: datasetId } : { contributed: false },
+          dataset: isExplicitDataContribution(contribute_to_data) ? { contributed: true, entry_id: datasetId } : { contributed: false },
         },
       })
       return
@@ -530,7 +531,7 @@ chatRoutes.post('/completions', async (req, res) => {
 
       // Dataset
       let datasetId: string | null = null
-      if (contribute_to_data) {
+      if (isExplicitDataContribution(contribute_to_data)) {
         datasetId = addEntry({
           endpoint: '/v1/chat/completions',
           model: orchestratorModel, mode: 'synthesis',
@@ -614,7 +615,7 @@ chatRoutes.post('/completions', async (req, res) => {
             obfuscation: pipeline.obfuscationResult,
             stm: stmResult,
           },
-          dataset: contribute_to_data ? { contributed: true, entry_id: datasetId } : { contributed: false },
+          dataset: isExplicitDataContribution(contribute_to_data) ? { contributed: true, entry_id: datasetId } : { contributed: false },
         },
       })
       return
@@ -856,7 +857,7 @@ chatRoutes.post('/completions', async (req, res) => {
 
     // Dataset collection (opt-in)
     let datasetId: string | null = null
-    if (contribute_to_data) {
+    if (isExplicitDataContribution(contribute_to_data)) {
       datasetId = addEntry({
         endpoint: '/v1/chat/completions',
         model,
@@ -944,7 +945,7 @@ chatRoutes.post('/completions', async (req, res) => {
           obfuscation: pipeline.obfuscationResult,
           stm: stmResult,
         },
-        dataset: contribute_to_data
+        dataset: isExplicitDataContribution(contribute_to_data)
           ? { contributed: true, entry_id: datasetId }
           : { contributed: false },
       },

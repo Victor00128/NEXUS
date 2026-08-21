@@ -41,6 +41,7 @@ import {
   type ModelResult,
 } from '../lib/racing'
 import { addEntry } from '../lib/dataset'
+import { datasetContributionResult, isExplicitDataContribution } from '../lib/consent'
 import { recordEvent, categorizeError } from '../lib/metadata'
 
 export const raceRoutes = Router()
@@ -368,7 +369,7 @@ raceRoutes.post('/completions', async (req, res) => {
 
       // Dataset collection
       let datasetId: string | null = null
-      if (contribute_to_data && winner) {
+      if (isExplicitDataContribution(contribute_to_data) && winner) {
         datasetId = addEntry({
           endpoint: '/v1/RACE/completions',
           model: winner.model, mode: 'race',
@@ -419,7 +420,7 @@ raceRoutes.post('/completions', async (req, res) => {
           obfuscation: obfuscationResult,
           stm: stmResult,
         },
-        dataset: contribute_to_data ? { contributed: true, entry_id: datasetId } : { contributed: false },
+        dataset: datasetContributionResult(datasetId),
       })
 
       // -- ZDR Metadata (content-free) -----------------------------
@@ -548,7 +549,7 @@ raceRoutes.post('/completions', async (req, res) => {
 
     // -- Dataset collection (opt-in) ----------------------------------
     let datasetId: string | null = null
-    if (contribute_to_data) {
+    if (isExplicitDataContribution(contribute_to_data)) {
       datasetId = addEntry({
         endpoint: '/v1/RACE/completions',
         model: winner.model, mode: 'race',
@@ -627,7 +628,7 @@ raceRoutes.post('/completions', async (req, res) => {
         obfuscation: obfuscationResult,
         stm: stmResult,
       },
-      dataset: contribute_to_data ? { contributed: true, entry_id: datasetId } : { contributed: false },
+      dataset: isExplicitDataContribution(contribute_to_data) ? { contributed: true, entry_id: datasetId } : { contributed: false },
     })
   } catch (err: any) {
     console.error('[RACE]', err)

@@ -42,7 +42,7 @@ Rate limit headers are returned on every response:
 - `X-RateLimit-Limit-Total` / `X-RateLimit-Remaining-Total`
 - `X-RateLimit-Limit-Minute` / `X-RateLimit-Remaining-Minute`
 - `X-RateLimit-Limit-Day` / `X-RateLimit-Remaining-Day`
-- `X-Tier` — your current tier
+- `X-Tier` â€” your current tier
 
 ### `GET /v1/tier`
 
@@ -124,7 +124,7 @@ const client = new OpenAI({
 const completion = await client.chat.completions.create({
   model: 'nousresearch/hermes-3-llama-3.1-70b',
   messages: [{ role: 'user', content: 'Hello!' }],
-  // @ts-ignore — NEXUS extension field
+  // @ts-ignore â€” NEXUS extension field
   openrouter_api_key: 'sk-or-v1-...',
 });
 console.log(completion.choices[0].message.content);
@@ -158,10 +158,10 @@ The NEXUS pipeline (NEXUS, TUNING, OBFUSCATION, STM) runs transparently behind t
 
 ### RACE via OpenAI SDK
 
-Use `model="RACE/fast"` (or `/standard`, `/full`) to race multiple models and automatically get the best response — all through the standard OpenAI SDK:
+Use `model="RACE/fast"` (or `/standard`, `/full`) to race multiple models and automatically get the best response â€” all through the standard OpenAI SDK:
 
 ```python
-# Race 10 models, get the best response — zero extra config
+# Race 10 models, get the best response â€” zero extra config
 response = client.chat.completions.create(
     model="RACE/fast",
     messages=[{"role": "user", "content": "Explain buffer overflow exploits"}],
@@ -511,7 +511,7 @@ The hive-mind endpoint. Collects ALL model responses in parallel, then feeds the
 
 **Key difference from RACE:** RACE picks the *best single voice*. SYNTHESIS distills *ground truth from the crowd*.
 
-**Request body** — same as RACE, plus:
+**Request body** â€” same as RACE, plus:
 
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
@@ -526,10 +526,10 @@ The hive-mind endpoint. Collects ALL model responses in parallel, then feeds the
 6. STM post-processing applied
 
 **Streaming SSE events:**
-- `SYNTHESIS:start` — Collection begins
-- `SYNTHESIS:model` — Each model responds (with score, duration)
-- `SYNTHESIS:synthesis:start` — Collection done, orchestrator starting
-- `SYNTHESIS:complete` — Full synthesis + metadata
+- `SYNTHESIS:start` â€” Collection begins
+- `SYNTHESIS:model` â€” Each model responds (with score, duration)
+- `SYNTHESIS:synthesis:start` â€” Collection done, orchestrator starting
+- `SYNTHESIS:complete` â€” Full synthesis + metadata
 
 **Non-streaming response:**
 ```json
@@ -561,17 +561,17 @@ The hive-mind endpoint. Collects ALL model responses in parallel, then feeds the
 
 Any request to `/v1/chat/completions`, `/v1/RACE/completions`, or `/v1/SYNTHESIS/completions` can opt in to dataset collection by setting `contribute_to_data: true`.
 
-**What gets stored (no PII):**
+**What gets stored (content may include personal or sensitive data):**
 - Messages and responses (system prompts stripped)
 - TUNING parameters and context detection results
 - Model used, response scores, race metadata (RACE)
 - OBFUSCATION and STM pipeline data
 - User feedback/ratings (if submitted later)
 
-**What is NEVER stored:**
-- API keys (OpenRouter or NEXUS)
-- IP addresses
-- Auth tokens
+The dataset builder does not deliberately add provider keys, NEXUS bearer
+tokens, or client IP addresses as metadata. It does not automatically redact
+message content, so operators must obtain consent and remove secrets or personal
+data before enabling collection or publishing a batch.
 
 ### `GET /v1/dataset/stats`
 
@@ -603,13 +603,16 @@ huggingface-cli upload nexus-ai/NEXUS dataset.jsonl
 
 ### `DELETE /v1/dataset/:id`
 
-Delete a specific entry (right to delete).
+Delete a specific entry while it remains in the server's in-memory buffer.
+After a batch is published to HuggingFace, deletion must be handled by the
+dataset operator in that repository; cached, forked, or redistributed copies
+cannot be guaranteed to disappear.
 
 ---
 
 ## Research API
 
-Read-access endpoints for the [`nexus-ai/NEXUS`](https://huggingface.co/datasets/nexus-ai/NEXUS) HuggingFace dataset. Query, filter, and download the full published corpus — not just the current in-memory buffer.
+Read-access endpoints for the [`nexus-ai/NEXUS`](https://huggingface.co/datasets/nexus-ai/NEXUS) HuggingFace dataset. Query, filter, and download the full published corpus â€” not just the current in-memory buffer.
 
 Requires `DATA_TOKEN` + `DATA_REPO` environment variables.
 
@@ -674,8 +677,8 @@ Query the full published corpus with server-side filters.
 | Param | Type | Description |
 |-------|------|-------------|
 | `category` | string | `metadata` or `dataset` |
-| `since` | number | Unix ms timestamp — records after this time |
-| `until` | number | Unix ms timestamp — records before this time |
+| `since` | number | Unix ms timestamp â€” records after this time |
+| `until` | number | Unix ms timestamp â€” records before this time |
 | `model` | string | Filter by model ID (winner, queried, or primary) |
 | `mode` | string | `standard` or `RACE` |
 | `limit` | number | Max records (default 100, max 1000) |
@@ -725,7 +728,7 @@ curl -H "Authorization: Bearer key" \
 1. Create a new Space with **Docker** SDK
 2. Push this repo (or just `api/`, `src/lib/`, `src/stm/`, `Dockerfile`, `package.json`)
 3. Set secrets in Space settings:
-   - `NEXUS_API_KEY` — your chosen API key for auth
+   - `NEXUS_API_KEY` â€” your chosen API key for auth
 4. The API will be live at `https://<your-space>.hf.space/v1/`
 
 ## Python Client Examples
@@ -824,9 +827,9 @@ print(r.json()["message"])
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `PORT` | Server port | `7860` |
-| `NEXUS_API_KEY` | Single API key for auth | _(none — open access)_ |
+| `NEXUS_API_KEY` | Single API key for auth | _(none â€” open only in non-production; production refuses startup)_ |
 | `NEXUS_API_KEYS` | Comma-separated API keys | _(none)_ |
-| `NEXUS_TIER_KEYS` | Tier assignments: `enterprise:key1,pro:key2` | _(none — all keys = free)_ |
+| `NEXUS_TIER_KEYS` | Tier assignments: `enterprise:key1,pro:key2` | _(none â€” all keys = free)_ |
 | `RATE_LIMIT_TOTAL` | Lifetime requests per key (free tier default) | `5` |
 | `RATE_LIMIT_PER_MINUTE` | Requests per minute per key (fallback) | `60` |
 | `RATE_LIMIT_PER_DAY` | Requests per day per key (fallback) | `1000` |

@@ -40,6 +40,17 @@ file analysis, model routing, and sandboxed code execution in one interface.
 - **Local-first settings** — chat data and provider configuration are stored in
   the browser, with backup export/import.
 
+## Good fit for
+
+NEXUS is useful as a reference or starting point for teams evaluating agentic
+workflows that must analyze files, execute code in an isolated environment, and
+return reviewable artifacts. It demonstrates the product flow and integration
+boundaries; it is not presented as a turnkey multi-tenant SaaS.
+
+Typical client work based on this evidence includes adding an AI workflow to an
+existing product, connecting provider and sandbox APIs, designing visible tool
+execution, and hardening loading, error, cancellation, and artifact-delivery states.
+
 ## Quick start
 
 ### Requirements

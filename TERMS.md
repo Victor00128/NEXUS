@@ -20,7 +20,7 @@ NEXUS is an open-source research tool for AI safety, red teaming, and cognition 
 
 This is the section that matters most. Read it carefully.
 
-NEXUS collects data in **three tiers**. The first two are always on and collect **only metadata** -- never your messages, prompts, responses, API keys, or any personally identifiable information. The third tier is strictly opt-in and does include conversation content.
+NEXUS collects data in **three tiers**. The first two are always on and are designed to collect structural metadata without message content or direct identifiers. The third tier is strictly opt-in and includes conversation content, which may contain personal or sensitive data.
 
 ### Overview
 
@@ -29,8 +29,8 @@ NEXUS collects data in **three tiers**. The first two are always on and collect 
 | **Where it runs** | API server | Web frontend (browser) | API server |
 | **Always on?** | Yes | Yes | **No -- opt-in only** |
 | **Collects message content?** | Never | Never | **Yes, when you opt in** |
-| **Collects PII?** | Never | Never | Never |
-| **Collects API keys?** | Never | Never | Never |
+| **Collects PII?** | Not deliberately included | Not deliberately included | **May be present in opted-in content** |
+| **Collects API keys?** | Not deliberately included in metadata | Not deliberately included in telemetry | Not deliberately added, but secrets typed into messages can be collected |
 | **Source code** | `api/lib/metadata.ts` | `src/lib/telemetry.ts` | `api/lib/dataset.ts` |
 
 ---
@@ -60,16 +60,16 @@ This runs on every API request. It records how the system performed, not what yo
 | Dynamic Upgrade metadata | Number of leader changes, time to first response |
 | Error types | Categorized as: `timeout`, `rate_limit`, `auth`, `empty`, `early_exit`, `model_error`, or `unknown` |
 
-#### What is NEVER collected
+#### What the application does not deliberately add
 
 | Excluded Data | Why |
 |---|---|
 | Message content | Your prompts and conversations are yours |
 | System prompts | Never recorded |
 | Response text | Only the character count, never the actual content |
-| API keys or auth tokens | Never leaves your client |
-| IP addresses | Not recorded |
-| Any PII | Not recorded, period |
+| API keys or auth tokens | Used to authorize or forward requests but not deliberately copied into Tier 1 metadata |
+| IP addresses | Not deliberately added by application code; hosting infrastructure may keep access logs |
+| Direct identifiers | Not deliberately added to Tier 1 metadata |
 | Raw error messages | Only categorized error types (e.g., "timeout"), never the actual error text |
 
 **Storage:** In-memory ring buffer (50,000 events max). When the buffer reaches 80% capacity, it auto-publishes to HuggingFace as JSONL and clears. Oldest events are evicted if the buffer fills up.
@@ -78,7 +78,7 @@ This runs on every API request. It records how the system performed, not what yo
 
 ### Tier 2: Client-Side Telemetry Beacon (Always On -- Web Frontend)
 
-This runs in your browser after every LLM request. It sends structural metadata to a Cloudflare Pages proxy endpoint. The proxy strips PII fields defensively before committing data to HuggingFace.
+This runs in your browser after every LLM request. It sends structural metadata to a same-origin serverless proxy (Vercel or Cloudflare, depending on the deployment). The proxy validates a strict structural schema and rejects unknown or free-form fields before committing data to HuggingFace.
 
 #### What IS collected
 
@@ -97,24 +97,24 @@ This runs in your browser after every LLM request. It sends structural metadata 
 | OBFUSCATION metadata | Number of triggers found (count only, not the trigger words), technique, intensity |
 | RACE metadata | Tier, models queried count, models succeeded count, winner model, winner score, total duration |
 
-#### What is NEVER collected
+#### What the application does not deliberately include
 
 | Excluded Data | Why |
 |---|---|
 | Message content | Never sent to the telemetry endpoint |
 | Prompts or responses | Not included in telemetry events |
-| API keys or tokens | Never leaves localStorage |
-| PII of any kind | Not collected; proxy also strips defensively |
+| API keys or tokens | Not deliberately included in telemetry payloads |
+| Direct identifiers | Not deliberately included; the proxy rejects fields outside the strict structural schema |
 
 **Storage:** Events are batched in browser memory and flushed every 30 seconds or every 20 events (whichever comes first) via POST to `/api/telemetry`. On page unload, remaining events are sent via `navigator.sendBeacon`. Telemetry is fire-and-forget -- it never blocks the UI or throws user-facing errors.
 
 ---
 
-### Tier 3: Opt-In Dataset Collection (Only When You Explicitly Enable It)
+### Tier 3: Opt-In Dataset Collection (API Requests Only)
 
 > **WARNING: This tier collects your full conversation content (prompts and responses) and publishes it to a PUBLIC HuggingFace dataset that anyone can download, redistribute, and use for any purpose. Only enable this if you understand and accept this.**
 
-This tier **only activates** when you explicitly enable "Dataset Generation" in Settings ? Privacy, or set `contribute_to_data: true` in your API request. It exists to build an open-source research dataset for studying how different models respond to steering primitives. If you do not enable this, none of this data is collected.
+This tier **only activates** when an API client sends `contribute_to_data: true` in its request. The browser setting labelled "Prepare Local Dataset Export" is stored locally and does not upload or publish conversations. Dataset collection exists to build an open-source research dataset for studying how different models respond to steering primitives. Without the explicit API flag, none of this conversation content is collected by Dataset Mode.
 
 #### What IS collected (only when opted in)
 
@@ -129,9 +129,10 @@ This tier **only activates** when you explicitly enable "Dataset Generation" in 
 | RACE details | Tier, full list of models queried, winner model, all scores/durations, total duration |
 | Feedback | User ratings (thumbs up/down) and heuristics (response length, repetition score, vocabulary diversity) |
 
-#### Automatic PII Scrubbing
+#### No Automatic PII Scrubbing
 
-All dataset entries pass through an automatic PII scrubber before being stored. The scrubber detects and redacts:
+Dataset messages and responses are stored without an automatic PII scrubber.
+The application does not currently detect or redact:
 
 - Email addresses
 - Phone numbers (US and international formats)
@@ -140,7 +141,9 @@ All dataset entries pass through an automatic PII scrubber before being stored. 
 - IPv4 and IPv6 addresses
 - API keys and bearer tokens (common patterns like `sk-`, `pk-`, `AKIA`)
 
-**Automated scrubbing is best-effort and NOT guaranteed to catch all PII.** It will not catch names, physical addresses, or PII in non-standard formats. **You are responsible for not including sensitive personal information in your prompts when Dataset Mode is enabled.**
+**You are responsible for obtaining consent and removing sensitive personal
+information before Dataset Mode is enabled.** Operators must review and redact
+content before publishing it to HuggingFace.
 
 #### What you should NEVER include when Dataset Mode is on
 
@@ -151,13 +154,13 @@ All dataset entries pass through an automatic PII scrubber before being stored. 
 - Medical records or health information
 - Any information that could identify a real person
 
-#### What is NEVER collected (even when opted in)
+#### What the dataset builder does not deliberately add
 
 | Excluded Data | Why |
 |---|---|
-| API keys | Never stored, never transmitted to NEXUS infrastructure |
-| IP addresses | Not recorded |
-| Auth tokens | Not recorded |
+| API keys | Not deliberately copied into dataset entries; API clients may transmit provider keys to the NEXUS server for request forwarding |
+| IP addresses | Not deliberately added to dataset entries by application code; hosting infrastructure may keep its own access logs |
+| Auth tokens | Used for request authentication but not deliberately copied into dataset entries |
 | System prompts | Excluded to prevent leaking custom prompt configurations |
 
 **Storage:** In-memory buffer (10,000 entries max, FIFO eviction). Auto-publishes to HuggingFace when buffer reaches 80% capacity.
@@ -170,7 +173,7 @@ All dataset entries pass through an automatic PII scrubber before being stored. 
 
 ### In-Memory Storage
 
-All collected data (metadata, telemetry, and opt-in dataset entries) is stored in server memory first. Nothing is written to disk on the NEXUS server. If the server restarts, in-memory data that has not been published is lost.
+Tier 1 metadata and Tier 3 dataset entries are buffered in server memory before publication. Tier 2 browser telemetry is posted through the deployment's same-origin serverless proxy (Vercel or Cloudflare) and committed directly to HuggingFace in batches; it is not retained in the Express server's in-memory buffers. Nothing is intentionally written to local disk by the NEXUS application server.
 
 ### HuggingFace Publishing
 
@@ -196,32 +199,42 @@ Self-hosted deployments can disable HuggingFace publishing entirely by not setti
 ### Deletion Rights
 
 - **Tier 3 (opt-in dataset):** You can request deletion of individual entries via `DELETE /v1/dataset/:id` while the data is still in the server's memory buffer. Once data has been published to HuggingFace, deletion requests must be directed to the HuggingFace repository maintainers.
-- **Tiers 1 and 2 (metadata/telemetry):** Because this data contains no PII and no message content, there is no mechanism for individual deletion. The data is anonymous aggregate metadata.
+- **Tiers 1 and 2 (metadata/telemetry):** These records are designed to exclude message content and direct identifiers; there is no mechanism for individual deletion.
 
 ---
 
 ## 5. API Keys, Credentials, and Chat History
 
-Your API keys (e.g., OpenRouter keys) are:
+When you use the browser interface, your API keys (for example, OpenRouter and E2B keys) are:
 
-- **Stored in your browser's `localStorage` only.** They never leave your device except to be sent directly to the third-party API provider (e.g., OpenRouter) as part of your requests.
-- **Never transmitted to NEXUS servers or infrastructure.**
-- **Never logged, recorded, or included in any telemetry or metadata.**
+- **Stored in your browser's `localStorage` at rest.**
+- **Transmitted to NEXUS server endpoints when required by Agent, RACE, or Synthesis flows, then forwarded to the selected provider.** Direct provider flows send them to that provider.
+- **Application code is designed not to log, persist, or include them in telemetry or dataset metadata.**
+
+When you call the NEXUS API server and include `openrouter_api_key` in a request,
+that key is transmitted to the NEXUS server over the connection and forwarded
+to the provider. The application does not intentionally persist it, but you
+should use HTTPS and only send keys to a deployment you trust.
 
 You are responsible for keeping your API keys secure. Do not share them publicly.
 
 ### Chat History Self-Custody
 
-Your conversation history is stored **exclusively in your browser's `localStorage`**. NEXUS has no account system, no cloud sync, and no server-side storage for your conversations.
+The browser interface stores its local conversation history in `localStorage`.
+NEXUS has no account system or cloud-sync copy of that local history when
+Dataset Mode is disabled. Model providers still receive request content under
+their own policies, and opted-in Dataset Mode can publish conversation content.
 
 **This means:**
 
 - Clearing your browser data **permanently deletes** your chat history. There is no recovery mechanism.
 - Your history does not transfer between browsers, devices, or browser profiles.
 - Private/incognito browsing sessions discard all data when the window closes.
-- `localStorage` is subject to browser storage limits (typically 5–10 MB). If you exceed this limit, older data may be silently evicted by the browser.
+- `localStorage` is subject to browser storage limits (typically 5â€“10 MB). If you exceed this limit, older data may be silently evicted by the browser.
 
-**NEXUS cannot recover lost conversations.** No copy of your chat history exists on any server. You are solely responsible for backing up any conversations you wish to keep. You can export your data manually via your browser's developer tools (`Application ? Local Storage`) or by copying conversations from the UI.
+**NEXUS cannot recover local history that is cleared from the browser.** You are
+responsible for backing up conversations you wish to keep. Provider retention
+and public Dataset Mode copies are separate from the browser's local history.
 
 ---
 
@@ -324,7 +337,8 @@ NEXUS interacts with third-party services. Your use of these services is governe
 |---|---|---|
 | **OpenRouter** | Routes requests to AI models | [openrouter.ai/terms](https://openrouter.ai/terms) |
 | **HuggingFace** | Hosts published metadata and dataset files | [huggingface.co/terms-of-service](https://huggingface.co/terms-of-service) |
-| **Cloudflare Pages** | Hosts the web frontend and telemetry proxy | [cloudflare.com/terms](https://www.cloudflare.com/terms/) |
+| **Vercel** | Hosts the public web demo and its Next.js telemetry route | [vercel.com/legal/terms](https://vercel.com/legal/terms) |
+| **Cloudflare Pages** | Can host the web frontend and Pages Functions telemetry proxy on compatible deployments | [cloudflare.com/terms](https://www.cloudflare.com/terms/) |
 
 NEXUS is not affiliated with, endorsed by, or sponsored by any of these services.
 

@@ -286,7 +286,7 @@ function APIKeyTab() {
       <div>
         <h3 className="text-lg font-semibold mb-2 flex items-center gap-1.5">{t('tab.api.title')}<HelpTip text={t('tip.api')} /></h3>
         <p className="text-sm theme-secondary mb-4">
-          Your API key is stored locally and never sent to NEXUS servers.
+          Your API key is stored locally at rest. Agent, RACE, and Synthesis flows send it to the NEXUS server for forwarding to the selected provider; the app does not intentionally persist it there.
           Get your key at{' '}
           <a
             href="https://openrouter.ai/keys"
@@ -342,7 +342,7 @@ function APIKeyTab() {
           <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" className="theme-primary underline">
             Groq
           </a>{' '}
-          (fast &amp; free tier). Stored locally, never sent to NEXUS servers.
+          (fast &amp; free tier). Stored locally at rest and sent directly to the selected transcription provider when used.
         </p>
 
         <div className="relative">
@@ -414,7 +414,7 @@ function APIKeyTab() {
           >
             e2b.dev
           </a>
-          . Stored locally, never sent to NEXUS servers.
+          . Stored locally at rest and sent to the NEXUS Agent endpoint when you run the agent so it can create the sandbox; the app does not intentionally persist it.
         </p>
 
         <div className="relative">
@@ -1353,17 +1353,17 @@ function PrivacyTab() {
         <ToggleSetting
           label={t('composer.noLog')}
           help={<HelpTip text={t('tip.noLog')} />}
-          description="Appends provider-specific no-log tags to requests (e.g., [[NOLOG]] for some providers)"
+          description="Reserved setting with no effect on current chat, Agent, RACE, or Synthesis requests. Provider retention follows each provider's policy."
           enabled={noLogMode}
           onChange={setNoLogMode}
         />
 
         <ToggleSetting
-          label="Dataset Generation"
-          description="Enable opt-in conversation export for training purposes. You control all data."
+          label="Prepare Local Dataset Export"
+          description="Keep this preference with your local settings for a future manual export workflow. It does not upload or publish conversations."
           enabled={dataCollectionEnabled}
           onChange={setDataCollectionEnabled}
-          warning="This stores conversations locally for potential export"
+          warning="Conversations remain in browser storage unless you explicitly export or send them elsewhere"
         />
       </div>
 
@@ -1373,9 +1373,9 @@ function PrivacyTab() {
           <div className="text-sm">
             <p className="font-semibold mb-1">Privacy Commitment</p>
             <ul className="space-y-1 theme-secondary">
-              <li>• No cookies or tracking</li>
-              <li>• No telemetry (Sentry, GA, PostHog)</li>
-              <li>• API key stored locally only</li>
+              <li>• No advertising or third-party analytics SDKs</li>
+              <li>• Structural telemetry is sent to /api/telemetry</li>
+              <li>• API keys stored locally at rest and transmitted only for selected flows</li>
               <li>• Open-source - verify the code yourself</li>
             </ul>
           </div>
@@ -1854,7 +1854,7 @@ function RACETab() {
               </div>
             </div>
             <p className="text-xs theme-secondary mt-1">
-              Auth key for the RACE backend. Stored locally only.
+              Auth key for the RACE backend. Stored locally at rest and sent to that backend when used.
             </p>
           </div>
 
@@ -2454,8 +2454,8 @@ function DataTab() {
       <div className="p-4 rounded-lg border border-theme-primary bg-theme-accent/50">
         <h3 className="text-lg font-semibold mb-1 flex items-center gap-1.5">{t('tab.data.title')}<HelpTip text={t('tip.data')} /></h3>
         <p className="text-sm theme-secondary leading-relaxed">
-          NEXUS stores everything locally in this browser — conversations, memories, settings, API keys.
-          Nothing is sent to a server. There is no cloud sync, no account, no safety net.
+          NEXUS keeps conversations, memories, settings, and API keys in this browser.
+          Model requests go to the providers you choose, and structural telemetry goes to /api/telemetry. There is no account or cloud sync for this local state.
           If you clear your browser data or switch devices, it&apos;s gone.
           <strong className="theme-primary"> Export a backup regularly.</strong>
         </p>

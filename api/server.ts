@@ -81,7 +81,7 @@ app.get('/v1/health', (_req, res) => {
 app.get('/v1/info', (_req, res) => {
   res.json({
     name: 'NEXUS AI Research API',
-    version: '0.4.0',
+    version: '1.0.0',
     description: 'RACE multi-model racing with Dynamic Upgrade live upgrades, context-adaptive parameter tuning, text transformation, obfuscation, opt-in open dataset collection, and full Research API for querying the published corpus on HuggingFace.',
     license: 'AGPL-3.0',
     flagship: 'POST /v1/race/completions',
@@ -127,7 +127,7 @@ app.get('/v1/info', (_req, res) => {
       tier_assignment: 'Set NEXUS_TIER_KEYS="enterprise:key1,pro:key2" to assign tiers to keys',
     },
     dataset: {
-      note: 'Opt-in per request via contribute_to_data: true. No PII stored. Exportable as JSONL for HuggingFace Datasets.',
+      note: 'Opt-in per request via contribute_to_data: true. Prompts and responses may contain sensitive data; operators must obtain consent and redact before publication. Exportable as JSONL for HuggingFace Datasets.',
     },
     auto_publish: getPublisherStatus(),
     source: 'https://github.com/Victor00128/NEXUS',
@@ -242,7 +242,7 @@ app.listen(PORT, '0.0.0.0', () => {
     : 'OFF (set DATA_TOKEN + DATA_REPO to enable)'
 
   console.log(`
-NEXUS AI Research API v0.4.0
+NEXUS AI Research API v1.0.0
 Listening on http://0.0.0.0:${PORT}
 
 TIERS:

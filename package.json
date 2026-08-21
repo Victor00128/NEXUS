@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/**/*.test.ts",
     "api": "tsx api/server.ts",
     "api:dev": "tsx watch api/server.ts"
   },

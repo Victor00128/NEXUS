@@ -3,20 +3,22 @@
  *
  * Opt-in data collection for building an open source research dataset.
  * Researchers who enable `contribute_to_data: true` in their requests
- * have their (anonymized) interaction data stored for the community.
+ * have their interaction data stored for the community.
  *
  * Stored data:
- * - Messages sent and received (no API keys, no IPs)
+ * - Messages sent and received; user content may include personal or sensitive data
  * - TUNING parameters and context detection results
  * - Model used and response metadata
  * - User feedback/ratings
  * - OBFUSCATION and STM pipeline metadata
  *
- * Privacy guarantees:
+ * Data-handling requirements:
  * - Strictly opt-in per request
- * - No PII: API keys, IPs, and auth tokens are NEVER stored
+ * - Request metadata excludes API keys, IPs, and auth tokens, but message content is not automatically redacted
+ * - Operators must obtain consent and redact sensitive content before publishing
  * - Dataset is exportable via GET /v1/dataset/export
- * - Caller can request deletion via DELETE /v1/dataset/:id
+ * - DELETE /v1/dataset/:id removes an entry only while it remains in memory
+ * - Published HuggingFace batches require operator-managed deletion and may persist in caches or forks
  *
  * Persistence: auto-publishes to HuggingFace when buffer fills up.
  */

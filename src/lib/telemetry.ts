@@ -5,10 +5,10 @@
  * every LLM request. The proxy commits batches to the HuggingFace
  * dataset repo (nexus-ai/NEXUS) as JSONL files.
  *
- * Privacy guarantees:
- * - NO message content, prompts, or responses
- * - NO API keys, tokens, or PII
- * - Only structural metadata: model, latency, pipeline config, context type
+ * Client-side event contract:
+ * - Does not deliberately add message content, prompts, responses, or API keys
+ * - Sends structural metadata such as model, latency, pipeline config, and context type
+ * - The server independently rejects unknown or free-form nested fields
  *
  * Events are batched in memory and flushed every 30 seconds or when
  * the batch hits 20 events (whichever comes first). Fire-and-forget �

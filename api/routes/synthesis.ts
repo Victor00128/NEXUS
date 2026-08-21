@@ -48,6 +48,7 @@ import {
   type SynthesisResponse,
 } from '../lib/synthesis'
 import { addEntry } from '../lib/dataset'
+import { isExplicitDataContribution } from '../lib/consent'
 import { recordEvent, categorizeError } from '../lib/metadata'
 
 export const synthesisRoutes = Router()
@@ -383,7 +384,7 @@ synthesisRoutes.post('/completions', async (req, res) => {
 
       // Dataset collection
       let datasetId: string | null = null
-      if (contribute_to_data) {
+      if (isExplicitDataContribution(contribute_to_data)) {
         datasetId = addEntry({
           endpoint: '/v1/synthesis/completions',
           model: resolvedOrchestrator,
@@ -426,7 +427,7 @@ synthesisRoutes.post('/completions', async (req, res) => {
           obfuscation: obfuscationResult,
           stm: stmResult,
         },
-        dataset: contribute_to_data ? { contributed: true, entry_id: datasetId } : { contributed: false },
+        dataset: isExplicitDataContribution(contribute_to_data) ? { contributed: true, entry_id: datasetId } : { contributed: false },
       })
 
       // ZDR Metadata
@@ -544,7 +545,7 @@ synthesisRoutes.post('/completions', async (req, res) => {
 
     // Dataset
     let datasetId: string | null = null
-    if (contribute_to_data) {
+    if (isExplicitDataContribution(contribute_to_data)) {
       datasetId = addEntry({
         endpoint: '/v1/synthesis/completions',
         model: resolvedOrchestrator,
@@ -616,7 +617,7 @@ synthesisRoutes.post('/completions', async (req, res) => {
         obfuscation: obfuscationResult,
         stm: stmResult,
       },
-      dataset: contribute_to_data ? { contributed: true, entry_id: datasetId } : { contributed: false },
+      dataset: isExplicitDataContribution(contribute_to_data) ? { contributed: true, entry_id: datasetId } : { contributed: false },
     })
 
   } catch (err: any) {

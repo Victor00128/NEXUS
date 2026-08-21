@@ -31,7 +31,7 @@ export function NvidiaKeyTab() {
    <div>
     <h3 className="text-lg font-semibold mb-2 flex items-center gap-1.5">{t('tab.nvidia.title')}<HelpTip text={t('tip.nvidia')} /></h3>
     <p className="text-sm theme-secondary mb-4">
-     Your NVIDIA API key is stored locally and never sent to NEXUS servers.
+     Your NVIDIA API key is stored locally at rest. Flows that use the NEXUS server may transmit provider credentials for forwarding; the app does not intentionally persist them there.
      Get your key at{' '}
      <a
       href="https://build.nvidia.com"

@@ -8,7 +8,7 @@
  *
  * URL: POST /api/telemetry
  *
- * Setup (Cloudflare Pages Dashboard → Settings → Environment Variables):
+ * Setup (deployment environment variables in Cloudflare or Vercel):
  *   DATA_TOKEN         — HuggingFace write token (hf_...)
  *   DATA_REPO  — Target dataset repo (e.g. "nexuslabs/NEXUS")
  *
@@ -19,20 +19,21 @@
  *   telemetry/batch_<timestamp>_<hash>.jsonl
  */
 
+import {
+  getClientRateLimitKey,
+  isAllowedOrigin,
+  validateTelemetryEvent,
+  type TelemetryPlatform,
+  type TelemetryEvent,
+} from './telemetry-schema'
+
 // Cloudflare Pages Function type (local declaration to avoid @cloudflare/workers-types dependency)
 type PagesFunction<T = unknown> = (context: { request: Request; env: T; waitUntil: (promise: Promise<unknown>) => void; next: () => Promise<Response> }) => Promise<Response> | Response
 
-interface Env {
+export interface TelemetryEnv {
   DATA_TOKEN: string
   DATA_REPO: string
   HF_DATASET_BRANCH?: string
-}
-
-interface TelemetryEvent {
-  type: string
-  timestamp: number
-  session_id: string
-  [key: string]: unknown
 }
 
 interface TelemetryPayload {
@@ -41,27 +42,19 @@ interface TelemetryPayload {
 
 const HF_API = 'https://huggingface.co/api'
 
-// CORS headers for cross-origin requests
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Access-Control-Max-Age': '86400',
-}
-
 // ── Rate Limiter (in-memory, per-isolate) ────────────────────────────
 const RATE_LIMIT_WINDOW_MS = 60_000 // 1 minute
-const RATE_LIMIT_MAX = 10           // max requests per window per session_id
+const RATE_LIMIT_MAX = 10           // max requests per window per client IP
 const rateLimitMap = new Map<string, number[]>()
 
-/** Returns true if this session_id has exceeded the rate limit. */
-function isRateLimited(sessionId: string): boolean {
+/** Returns true if this client key has exceeded the rate limit. */
+function isRateLimited(clientKey: string): boolean {
   const now = Date.now()
-  let timestamps = rateLimitMap.get(sessionId)
+  let timestamps = rateLimitMap.get(clientKey)
 
   if (!timestamps) {
     timestamps = []
-    rateLimitMap.set(sessionId, timestamps)
+    rateLimitMap.set(clientKey, timestamps)
   }
 
   // Evict entries older than the window
@@ -78,56 +71,30 @@ function isRateLimited(sessionId: string): boolean {
   return false
 }
 
-/** Derive a fallback key when session_id is missing. */
-function deriveSessionKey(event: TelemetryEvent): string {
-  const raw = JSON.stringify(event)
-  let h = 0
-  for (let i = 0; i < raw.length; i++) {
-    h = ((h << 5) - h + raw.charCodeAt(i)) | 0
-  }
-  return `__derived_${Math.abs(h).toString(36)}`
-}
-
-// ── Event Schema Validation ──────────────────────────────────────────
-
-/** Validates that an event conforms to the expected shape. */
-function validateEvent(event: unknown): event is TelemetryEvent {
-  if (typeof event !== 'object' || event === null || Array.isArray(event)) {
-    return false
-  }
-  const e = event as Record<string, unknown>
-
-  // 'type' must be a non-empty string
-  if (typeof e.type !== 'string' || e.type.length === 0) return false
-
-  // 'timestamp' must be a finite number
-  if (typeof e.timestamp !== 'number' || !Number.isFinite(e.timestamp)) return false
-
-  // 'session_id' is required and must be a string (can be empty – the
-  // rate limiter will derive a key if needed, but the field must exist)
-  if (typeof e.session_id !== 'string') return false
-
-  // Reject events that are unreasonably large (> 64 KB serialised)
-  if (JSON.stringify(e).length > 65_536) return false
-
-  return true
-}
-
 // Handle CORS preflight
-export const onRequestOptions: PagesFunction<Env> = async () => {
-  return new Response(null, { status: 204, headers: CORS_HEADERS })
+export function handleTelemetryOptions(request: Request): Response {
+  if (!isAllowedOrigin(request)) {
+    return jsonResponse({ error: 'Cross-origin telemetry is not allowed' }, 403)
+  }
+  return new Response(null, { status: 204 })
 }
 
-// Main handler: receive events and push to HF
-export const onRequestPost: PagesFunction<Env> = async (context) => {
-  const { request, env } = context
+// Main handler shared by the Cloudflare and Next/Vercel adapters.
+export async function handleTelemetryPost(
+  request: Request,
+  env: TelemetryEnv,
+  platform: TelemetryPlatform,
+): Promise<Response> {
+  if (!isAllowedOrigin(request)) {
+    return jsonResponse({ error: 'Cross-origin telemetry is not allowed' }, 403)
+  }
 
   // Validate config
   if (!env.DATA_TOKEN || !env.DATA_REPO) {
     const missing = []
     if (!env.DATA_TOKEN) missing.push('DATA_TOKEN')
     if (!env.DATA_REPO) missing.push('DATA_REPO')
-    console.error(`[Telemetry] Missing env vars: ${missing.join(', ')} — set these in Cloudflare Pages Dashboard → Settings → Environment Variables`)
+    console.error(`[Telemetry] Missing env vars: ${missing.join(', ')} — set these in the deployment environment`)
     return jsonResponse({ error: `Telemetry not configured (missing: ${missing.join(', ')})` }, 503)
   }
 
@@ -148,7 +115,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const events = payload.events.slice(0, MAX_BATCH)
 
   // ── Validate every event against the expected schema ──
-  const invalid = events.filter(e => !validateEvent(e))
+  const invalid = events.filter(e => !validateTelemetryEvent(e))
   if (invalid.length > 0) {
     return jsonResponse(
       { error: `${invalid.length} event(s) failed schema validation` },
@@ -156,22 +123,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     )
   }
 
-  // ── Rate limiting (per session_id) ──
-  // Use the session_id from the first event; fall back to a derived key
-  const firstEvent = events[0]
-  const sessionKey = firstEvent.session_id
-    ? firstEvent.session_id
-    : deriveSessionKey(firstEvent)
-
-  if (isRateLimited(sessionKey)) {
+  // ── Rate limiting (per client IP, not a caller-controlled session ID) ──
+  if (isRateLimited(getClientRateLimitKey(request, platform))) {
     return jsonResponse({ error: 'Rate limit exceeded — try again later' }, 429)
   }
 
-  // Strip to allowlisted fields only (defense in depth)
-  const sanitized = events.map(stripPII)
-
   // Convert to JSONL
-  const jsonl = sanitized.map(e => JSON.stringify(e)).join('\n')
+  const jsonl = events.map(e => JSON.stringify(e)).join('\n')
 
   // Generate filename
   const ts = new Date().toISOString().replace(/[:.]/g, '-')
@@ -184,13 +142,22 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   if (ok) {
     return jsonResponse({
-      accepted: sanitized.length,
+      accepted: events.length,
       file: filePath,
     }, 200)
   }
 
   return jsonResponse({ error: 'Failed to publish to HuggingFace — check function logs for details' }, 502)
 }
+
+// Cloudflare Pages adapter. Its own edge supplies CF-Connecting-IP.
+export const onRequestOptions: PagesFunction<TelemetryEnv> = async ({ request }) => (
+  handleTelemetryOptions(request)
+)
+
+export const onRequestPost: PagesFunction<TelemetryEnv> = async ({ request, env }) => (
+  handleTelemetryPost(request, env, 'cloudflare')
+)
 
 // ── HuggingFace Hub Commit ───────────────────────────────────────────
 
@@ -242,119 +209,6 @@ async function commitToHF(
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
-// Allowlist of fields that are safe to persist.
-// Everything NOT on this list is silently dropped — this is the inverse
-// of the old blocklist approach and far safer against novel PII leaks.
-const ALLOWED_FIELDS = new Set<string>([
-  // Core event envelope
-  'type',
-  'timestamp',
-  'session_id',
-
-  // Shared model/perf fields
-  'mode',
-  'model',
-  'duration_ms',
-  'response_length',
-  'success',
-  'error_type',
-
-  // Pipeline config (nested object — passes through as-is)
-  'pipeline',
-
-  // TUNING (nested object)
-  'TUNING',
-  'detected_context',
-  'confidence',
-
-  // OBFUSCATION (nested object)
-  'OBFUSCATION',
-  'triggers_found',
-  'technique',
-  'intensity',
-
-  // RACE race fields
-  'RACE',
-  'tier',
-  'models_queried',
-  'models_succeeded',
-  'models_refused',
-  'early_stop',
-  'early_threshold',
-  'winner_model',
-  'winner_score',
-  'winner_content_length',
-  'winner_duration_ms',
-  'winner_template',
-  'total_duration_ms',
-  'judge_model',
-  'model_results',
-
-  // Standard completion fields
-  'attempts',
-  'content_length',
-  'temperature',
-  'top_p',
-  'OBFUSCATION_transform',
-
-  // Pipeline sub-fields (when flattened)
-  'stm_modules',
-  'strategy',
-  'NEXUS',
-  'auto_retry',
-  'improve_mode',
-  'liquid_mode',
-  'TUNING_context',
-  'TUNING_confidence',
-
-  // Harm classification (nested object with domain, subcategory, confidence, intent, flags)
-  'classification',
-
-  // Structural context (no content, no PII)
-  'persona',
-  'prompt_length',
-  'conversation_depth',
-  'memory_count',
-  'no_log',
-  'OBFUSCATION_transformed',
-  'has_image',
-
-  // NEXUS CLASSIC race fields
-  'winner_combo',
-  'combos_attempted',
-  'combos_succeeded',
-  'combos_failed',
-  'all_scores',
-  'encoding',
-  'encoding_rounds',
-  'liquid_upgrades',
-
-  // NEXUS FAST fields
-  'combo',
-  'stream',
-  'fast_stream',        // nested: {model, success, content_length}
-  'liquid_upgraded',
-  'winner_source',      // 'fast' | 'race'
-  'race_result',        // nested: {winner_combo, winner_model, winner_score, ...}
-
-  // Failure tracking
-  'fallback_reason',
-
-  // OBFUSCATION detail fields (nested under 'OBFUSCATION')
-  // tier, technique, technique_label, triggers_found, variants_total,
-  // variants_succeeded, variants_refused, winner_score — all nested
-])
-
-function stripPII(event: TelemetryEvent): TelemetryEvent {
-  const clean: Record<string, unknown> = {}
-  for (const key of Object.keys(event)) {
-    if (ALLOWED_FIELDS.has(key)) {
-      clean[key] = event[key]
-    }
-  }
-  return clean as TelemetryEvent
-}
-
 function shortHash(str: string): string {
   let h = 0
   for (let i = 0; i < str.length; i++) {
@@ -368,7 +222,6 @@ function jsonResponse(data: unknown, status: number): Response {
     status,
     headers: {
       'Content-Type': 'application/json',
-      ...CORS_HEADERS,
     },
   })
 }

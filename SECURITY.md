@@ -36,13 +36,13 @@ Out of scope:
 
 | Version | Supported |
 |---------|-----------|
-| 0.4.x   | Yes       |
-| < 0.4   | No        |
+| 1.0.x   | Yes       |
+| < 1.0   | No        |
 
 ## Security Design
 
-- **Authentication:** Bearer token with constant-time comparison (timing-attack resistant)
+- **Authentication:** Optional API bearer token with constant-time comparison; deployments must configure it explicitly
 - **Rate limiting:** Tier-aware sliding window (per-minute + per-day + lifetime)
 - **Headers:** HSTS, CSP, X-Content-Type-Options, X-Frame-Options, Permissions-Policy
-- **Docker:** Non-root containers, minimal base images
-- **Data:** Zero PII storage, opt-in dataset collection only
+- **Docker:** The API image runs as a non-root user; deployment images use minimal base images
+- **Data:** Dataset contribution is opt-in, but contributed prompts and responses may contain personal or sensitive data. Operators must obtain consent and redact content before enabling publication

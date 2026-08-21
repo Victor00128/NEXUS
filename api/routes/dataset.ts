@@ -3,7 +3,7 @@
  *
  * GET    /v1/dataset/stats    — Dataset statistics
  * GET    /v1/dataset/export   — Export full dataset as JSON (JSONL-compatible)
- * DELETE /v1/dataset/:id      — Delete a specific entry (for GDPR-style right to delete)
+ * DELETE /v1/dataset/:id      — Delete a specific entry from the in-memory buffer
  */
 
 import { Router } from 'express'

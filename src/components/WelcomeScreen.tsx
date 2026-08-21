@@ -56,8 +56,8 @@ export function WelcomeScreen({ onOpenSettings }: WelcomeScreenProps) {
         />
         <FeatureCard
           icon={<ShieldCheck className="w-5 h-5" />}
-          title="Zero Telemetry"
-          description="No cookies, no tracking, no data harvesting. Ever."
+          title="Minimal Telemetry"
+          description="Structural usage events only; prompts and API keys are not deliberately included"
         />
         <FeatureCard
           icon={<Drama className="w-5 h-5" />}
